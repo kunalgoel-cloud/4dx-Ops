@@ -1,5 +1,5 @@
 import streamlit as st
-from src.demo_data import get_quality
+from demo_data import get_quality
 st.set_page_config(page_title="Data Quality",page_icon="🧹",layout="wide")
 st.title("Data Quality")
 st.caption("Quality issues are surfaced instead of silently dropping records.")

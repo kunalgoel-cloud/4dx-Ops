@@ -1,6 +1,6 @@
 import streamlit as st
-from src.validation import validate_upload
-from src.mapping import get_unmapped_demo_items
+from validation import validate_upload
+from mapping import get_unmapped_demo_items
 
 st.set_page_config(page_title="Upload Data",page_icon="📤",layout="wide")
 st.title("Upload Data")

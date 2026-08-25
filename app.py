@@ -1,5 +1,5 @@
 import streamlit as st
-from src.demo_data import get_demo_metrics
+from demo_data import get_demo_metrics
 
 st.set_page_config(page_title="Operations 4DX", page_icon="📊", layout="wide")
 st.markdown("<style>.block-container{padding-top:1.2rem}.metric-card{border:1px solid #e5e7eb;border-radius:12px;padding:16px;background:white}</style>", unsafe_allow_html=True)

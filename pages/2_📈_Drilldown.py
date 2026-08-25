@@ -1,5 +1,5 @@
 import streamlit as st
-from src.demo_data import get_shipments
+from demo_data import get_shipments
 st.set_page_config(page_title="Drilldown",page_icon="📈",layout="wide")
 st.title("Operations Drill-down")
 df=get_shipments()

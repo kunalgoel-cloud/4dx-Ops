@@ -1,5 +1,5 @@
 import streamlit as st
-from src.mapping import get_unmapped_demo_items
+from mapping import get_unmapped_demo_items
 st.set_page_config(page_title="Mapping Center",page_icon="🗺️",layout="wide")
 st.title("Mapping Center")
 st.caption("New source values must be mapped explicitly; the system never guesses them into official metrics.")
