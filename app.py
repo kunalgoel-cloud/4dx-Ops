@@ -19,7 +19,7 @@ st.subheader('Lag metrics')
 metric_keys=['fulfillment','otif','avg_invoice','cost','cost_pct','order_to_ship','ship_to_delivery','delivery','material_lead_time']
 cols=st.columns(3)
 for col,key in zip(cols*3,metric_keys):
-    x=m[key]
+    x=m.get(key, {'name': key.replace('_',' ').title(), 'value': '—', 'delta': None, 'bad': False, 'target': '—', 'window': 'Data unavailable', 'coverage': '—', 'formula': 'Source data unavailable', 'data': __import__('pandas').DataFrame(), 'trend': __import__('pandas').DataFrame(columns=['Date','Actual','Target'])})
     with col:
         st.markdown('<div class="metric-card">',unsafe_allow_html=True)
         st.metric(x['name'],x['value'],x['delta'],delta_color='inverse' if x['bad'] else 'normal')
@@ -40,7 +40,7 @@ st.divider(); st.subheader('Metric trends vs target')
 trend_tabs=st.tabs([m[k]['name'] for k in metric_keys])
 for tab,key in zip(trend_tabs,metric_keys):
     with tab:
-        x=m[key]; fig=go.Figure()
+        x=m.get(key, {'name': key.replace('_',' ').title(), 'value': '—', 'delta': None, 'bad': False, 'target': '—', 'window': 'Data unavailable', 'coverage': '—', 'formula': 'Source data unavailable', 'data': __import__('pandas').DataFrame(), 'trend': __import__('pandas').DataFrame(columns=['Date','Actual','Target'])}); fig=go.Figure()
         fig.add_trace(go.Scatter(x=x['trend']['Date'],y=x['trend']['Actual'],mode='lines+markers',name='Actual'))
         fig.add_trace(go.Scatter(x=x['trend']['Date'],y=x['trend']['Target'],mode='lines',name='Target',line=dict(dash='dash')))
         fig.update_layout(height=280,margin=dict(l=10,r=10,t=10,b=10),legend=dict(orientation='h'))
