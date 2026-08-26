@@ -1,6 +1,18 @@
-# Operations 4DX — Phase 1 UX Prototype
+# Operations 4DX — Phase 1 v2
 
-This version is intentionally **flat-layout** so it matches a GitHub repository where `app.py`, `demo_data.py`, `mapping.py`, `validation.py`, and `db.py` are all in the repository root.
+Streamlit + Supabase operations cockpit.
+
+## UX changes in v2
+- Individual metric trend cards with target lines instead of weekly scorecard.
+- Separate Order→Ship and Ship→Delivery metrics.
+- Clickable metric cards expose calculation data / evidence rows.
+- Customer / City / SKU ranked drilldown is on the home page.
+- Upload and data-quality handling are combined into Data Intake.
+- New mapping values require explicit treatment: map, exclude, or historic mapping.
+- Calculation window and coverage are visible.
+- Lead → Lag relationships are shown explicitly.
+- Mapping page rendering bug removed.
+- Gemini is intentionally not connected in Phase 1.
 
 ## Run locally
 
@@ -8,40 +20,25 @@ This version is intentionally **flat-layout** so it matches a GitHub repository 
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+export SUPABASE_URL="https://kswjflivaquglmoeqehh.supabase.co"
+export SUPABASE_KEY="YOUR_SUPABASE_KEY"
 streamlit run app.py
 ```
 
-## Streamlit Cloud
-
-Set these under **App → Settings → Secrets**:
-
-```toml
-SUPABASE_URL = "https://kswjflivaquglmoeqehh.supabase.co"
-SUPABASE_KEY = "YOUR_SUPABASE_KEY"
-```
-
-Do not commit the Supabase key to GitHub.
+For Streamlit Cloud, put SUPABASE_URL and SUPABASE_KEY in App Settings → Secrets.
 
 ## Supabase
-
-Run:
+Run SQL files in this order:
 1. `sql/001_schema.sql`
 2. `sql/002_views.sql`
+3. `sql/003_phase1_audit.sql`
 
-## Current status
+## GitHub push
+From the repository root after copying these files:
 
-The dashboard is a UX prototype with representative dry-run values. Upload validation and mapping screens are present, but production ingestion/calculation is intentionally not wired yet.
-
-## Why the import is flat
-
-The first prototype used:
-
-```python
-from src.demo_data import get_demo_metrics
+```bash
+git add -A
+git status
+git commit -m "Upgrade 4DX Ops cockpit and data intake"
+git push origin main
 ```
-
-That requires a `src/` directory in the deployed repository. If files are uploaded to the GitHub root instead, Streamlit raises:
-
-`ModuleNotFoundError: No module named 'src'`
-
-This version uses root-level imports so the exact GitHub layout shown in the repository works.

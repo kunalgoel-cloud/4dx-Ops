@@ -1,10 +1,24 @@
 import pandas as pd
-EXPECTED={"sales":["SKU"],"inventory":["Total_Stock"],"sales_orders":["Sales Order"],"po":["PO"],"invoice":["Invoice Number"],"outward_b2b":["Invoice Number","AWB"],"tracking":["AWB"],"freight":["AWB","Total Charges"]}
-def validate_upload(f,source):
+
+REQUIRED={
+ 'sales':['Date','SKU','Units'],
+ 'inventory':['SKU','Total_Stock'],
+ 'sales_orders':['Sales Order'],
+ 'po':['PO Number'],
+ 'invoice':['Invoice Number'],
+ 'outward_b2b':['Invoice Number'],
+ 'tracking':['Invoice Number'],
+ 'freight':['Invoice Number']}
+
+def validate_upload(file_obj, source):
     try:
-        df=pd.read_csv(f) if f.name.lower().endswith(".csv") else pd.read_excel(f)
-        cols={str(c).strip().lower():c for c in df.columns}
-        missing=[x for x in EXPECTED.get(source,[]) if x.lower() not in cols]
-        if missing:return {"ok":False,"message":f"This file does not match the {source.replace('_',' ')} schema.","missing":missing}
-        return {"ok":True,"rows":len(df)}
-    except Exception as e:return {"ok":False,"message":f"Could not read the file: {e}"}
+        name=getattr(file_obj,'name','')
+        if name.lower().endswith('.csv'): df=pd.read_csv(file_obj)
+        else: df=pd.read_excel(file_obj)
+    except Exception as e:
+        return {'ok':False,'message':f'Could not read file: {e}','missing':[],'extra':[]}
+    cols=[str(c).strip() for c in df.columns]
+    df.columns=cols
+    required=REQUIRED.get(source,[])
+    missing=[c for c in required if c not in cols]
+    return {'ok':not missing,'message':'accepted' if not missing else 'missing required columns','missing':missing,'extra':[],'rows':len(df),'preview':df}
