@@ -89,20 +89,30 @@ def _clean_columns(df):
     return df
 
 
+def _normalize_variants(raw):
+    cleaned = str(raw).replace('\ufeff', '').strip()
+    variants = {cleaned.lower()}
+    # BI/reporting-tool exports often qualify columns as "Table.Column"
+    # (e.g. "Inventory_Snapshots.Total_Stock"). Match on the part after
+    # the last dot too, so aliases still resolve against the real field.
+    if '.' in cleaned:
+        variants.add(cleaned.split('.')[-1].strip().lower())
+    # Zoho-style exports commonly use a trailing '#' for "Number"
+    # (e.g. "Sales Order#", "PO#", "Invoice#"). Match with it stripped too.
+    if '#' in cleaned:
+        variants.add(cleaned.replace('#', '').strip().lower())
+    return variants
+
+
 def _find_col(cols, choices):
     norm = {}
     for c in cols:
-        cleaned = str(c).replace('\ufeff', '').strip()
-        norm[cleaned.lower()] = c
-        # BI/reporting-tool exports often qualify columns as "Table.Column"
-        # (e.g. "Inventory_Snapshots.Total_Stock"). Also index by the part
-        # after the last dot so aliases still match against the real field.
-        if '.' in cleaned:
-            norm.setdefault(cleaned.split('.')[-1].strip().lower(), c)
+        for v in _normalize_variants(c):
+            norm.setdefault(v, c)
     for x in choices:
-        key = str(x).replace('\ufeff', '').strip().lower()
-        if key in norm:
-            return norm[key]
+        for v in _normalize_variants(x):
+            if v in norm:
+                return norm[v]
     return None
 
 
