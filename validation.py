@@ -29,11 +29,11 @@ ALIASES = {
         'order_date': ['Order Date', 'SO Date', 'Date'],
     },
     'po': {
-        'po_number': ['PO Number', 'PO No', 'Purchase Order'],
-        'sku': ['SKU', 'Item', 'Item Code'],
-        'po_date': ['PO Date', 'Order Date', 'Date'],
+        'po_number': ['PO Number', 'PO No', 'Purchase Order', 'Purchase Order Number'],
+        'sku': ['SKU', 'Item', 'Item Code', 'Item Name'],
+        'po_date': ['PO Date', 'Order Date', 'Date', 'Purchase Order Date'],
         'expected_delivery_date': ['Expected Delivery Date', 'EDD'],
-        'actual_receipt_date': ['Actual Receipt Date', 'Receipt Date', 'Supply Date'],
+        'actual_receipt_date': ['Actual Receipt Date', 'Receipt Date', 'Supply Date', 'Actual GRN Date', 'GRN Date', 'Received Date'],
     },
     'invoice': {
         'invoice_number': ['Invoice Number', 'Invoice No', 'Invoice', 'Invoice #'],
