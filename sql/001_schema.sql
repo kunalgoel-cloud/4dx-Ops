@@ -37,3 +37,7 @@ insert into system_settings(key,value) values
 ('supplier_otif','{"exclude_blank_edd":true}') on conflict(key) do nothing;
 insert into metric_targets(metric_code,direction,target_value,unit) values
 ('fulfillment','gte',95,'%'),('otif','gte',95,'%'),('cost_per_shipment','lte',400,'INR'),('order_to_delivery','lte',5,'days'),('supplier_otif','gte',95,'%') on conflict do nothing;
+
+-- v4 duplicate controls: an exact file can only be accepted once per source.
+create unique index if not exists uq_upload_runs_source_hash on upload_runs(source_type,file_hash) where file_hash is not null;
+create index if not exists idx_raw_upload_run_row on raw_upload_rows(upload_run_id,row_number);

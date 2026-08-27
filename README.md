@@ -1,44 +1,18 @@
-# Operations 4DX — Phase 1 v2
+# Operations 4DX — Phase 1 v4
 
-Streamlit + Supabase operations cockpit.
+This version separates demo and production modes and adds upload-level duplicate protection.
 
-## UX changes in v2
-- Individual metric trend cards with target lines instead of weekly scorecard.
-- Separate Order→Ship and Ship→Delivery metrics.
-- Clickable metric cards expose calculation data / evidence rows.
-- Customer / City / SKU ranked drilldown is on the home page.
-- Upload and data-quality handling are combined into Data Intake.
-- New mapping values require explicit treatment: map, exclude, or historic mapping.
-- Calculation window and coverage are visible.
-- Lead → Lag relationships are shown explicitly.
-- Mapping page rendering bug removed.
-- Gemini is intentionally not connected in Phase 1.
+## Production mode
 
-## Run locally
+The Home dashboard uses demo data only when there are no accepted production uploads. Once a valid upload is accepted, production mode is enabled and unavailable metrics remain `—`; demo data is never mixed with production data.
 
-```bash
-python -m venv .venv
-source .venv/bin/activate
-pip install -r requirements.txt
-export SUPABASE_URL="https://kswjflivaquglmoeqehh.supabase.co"
-export SUPABASE_KEY="YOUR_SUPABASE_KEY"
-streamlit run app.py
-```
+## Duplicate handling
 
-For Streamlit Cloud, put SUPABASE_URL and SUPABASE_KEY in App Settings → Secrets.
+- Exact file duplicates are detected with SHA-256 and blocked against previously accepted uploads of the same source type.
+- Exact duplicate rows inside a file are reported.
+- Source-specific business-key duplicates are reported for review rather than automatically deleted.
+- Cross-source matching is not treated as duplication; e.g. an invoice may legitimately appear in Sales Orders and Outward B2B.
 
-## Supabase
-Run SQL files in this order:
-1. `sql/001_schema.sql`
-2. `sql/002_views.sql`
-3. `sql/003_phase1_audit.sql`
+## Current limitation
 
-## GitHub push
-From the repository root after copying these files:
-
-```bash
-git add -A
-git status
-git commit -m "Upgrade 4DX Ops cockpit and data intake"
-git push origin main
-```
+v4 stages raw production uploads into Supabase and establishes the production-mode contract. The next step is the source-specific normalization/reconciliation engine that turns the staged rows into official metrics.
