@@ -20,6 +20,7 @@ ALIASES = {
     'inventory': {
         'sku': ['SKU', 'Item', 'Item Code'],
         'total_stock': ['Total_Stock', 'Stock', 'Total Stock'],
+        'product_title': ['Title', 'Product Title', 'Product Name', 'Item Name'],
     },
     'sales_orders': {
         'sales_order': ['Sales Order', 'Sales Order Number', 'SO Number'],
@@ -89,7 +90,15 @@ def _clean_columns(df):
 
 
 def _find_col(cols, choices):
-    norm = {str(c).replace('\ufeff', '').strip().lower(): c for c in cols}
+    norm = {}
+    for c in cols:
+        cleaned = str(c).replace('\ufeff', '').strip()
+        norm[cleaned.lower()] = c
+        # BI/reporting-tool exports often qualify columns as "Table.Column"
+        # (e.g. "Inventory_Snapshots.Total_Stock"). Also index by the part
+        # after the last dot so aliases still match against the real field.
+        if '.' in cleaned:
+            norm.setdefault(cleaned.split('.')[-1].strip().lower(), c)
     for x in choices:
         key = str(x).replace('\ufeff', '').strip().lower()
         if key in norm:
@@ -181,15 +190,30 @@ def validate_upload(file_obj, source, date_override=None):
     # was matched into the canonical field, not just an exact name match.
     min_required = REQUIRED.get(source, [])
     missing = []
+    sku_identity_source = None
     for required in min_required:
         found = _find_col(df.columns, [required])
         if found is not None:
+            if source == 'inventory' and required == 'SKU':
+                sku_identity_source = 'sku'
             continue
         if source == 'invoice' and (mapped.get('invoice_number') or mapped.get('invoice_id')):
             continue
         canonical_key = required.lower().replace(' ', '_')
-        if mapped.get(canonical_key) is None:
-            missing.append(required)
+        if mapped.get(canonical_key) is not None:
+            if source == 'inventory' and required == 'SKU':
+                sku_identity_source = 'sku'
+            continue
+        # Some inventory exports (BI/reporting-tool "tabular view" style)
+        # carry no coded SKU at all, only a product Title. Accept the file
+        # using Title as a stand-in identity rather than hard-rejecting it,
+        # but this is flagged in the result so it's never silently treated
+        # as equivalent to a real SKU (cross-source SKU joins won't apply
+        # until it's manually mapped).
+        if source == 'inventory' and required == 'SKU' and mapped.get('product_title') is not None:
+            sku_identity_source = 'title'
+            continue
+        missing.append(required)
 
     if missing:
         return {
@@ -225,6 +249,9 @@ def validate_upload(file_obj, source, date_override=None):
         result['date_injected'] = date_injected
         if date_injected:
             result['date_injected_value'] = str(pd.to_datetime(date_override).date())
+
+    if source == 'inventory':
+        result['sku_identity_source'] = sku_identity_source
 
     if source == 'invoice':
         result['entity_count'] = entity_count

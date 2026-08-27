@@ -57,6 +57,8 @@ for tab,label in zip(tabs,SOURCE_SPECS):
             st.success(f"✓ Schema accepted • {result['rows']:,} rows • SHA {sha[:12]}…")
             if source == 'sales' and result.get('date_injected'):
                 st.warning(f"No Date column found in this file. All {result['rows']:,} rows have been stamped with {result['date_injected_value']} (1st of the selected reporting month). This is a monthly total assigned to a single date, not real daily sales — trailing 30-day / daily-trend metrics will show this whole period's volume on one day rather than spread across days. Prefer a daily-granularity export when one is available.")
+            if source == 'inventory' and result.get('sku_identity_source') == 'title':
+                st.warning("No SKU column found in this file — rows are identified by Product Title instead. This upload is accepted, but Title is not the same as a coded SKU: it will NOT automatically match SKUs from Sales, PO, or Invoice uploads until mapped. Review the mapping step before publishing to production metrics.")
             if source == 'invoice' and result.get('entity_count'):
                 st.info(f"Invoice file recognised as a line-item export: {result['entity_count']:,} unique invoices across {result['rows']:,} rows. Repeated Invoice Number values are expected and will NOT be treated as duplicate uploads.")
             if result.get('exact_duplicate_rows'):
