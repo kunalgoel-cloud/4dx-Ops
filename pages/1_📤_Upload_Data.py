@@ -39,8 +39,12 @@ for tab,label in zip(tabs,SOURCE_SPECS):
                 st.error('File rejected — required identity fields are missing.')
                 st.write('Missing:',result.get('missing',[])); continue
             st.success(f"✓ Schema accepted • {result['rows']:,} rows • SHA {sha[:12]}…")
-            if result.get('exact_duplicate_rows'): st.warning(f"⚠ {result['exact_duplicate_rows']:,} exact duplicate rows detected.")
-            if result.get('business_duplicate_rows'): st.warning(f"⚠ {result['business_duplicate_rows']:,} rows share the source business key {result.get('business_key_columns')} — review before publishing.")
+            if source == 'invoice' and result.get('entity_count'):
+                st.info(f"Invoice file recognised as a line-item export: {result['entity_count']:,} unique invoices across {result['rows']:,} rows. Repeated Invoice Number values are expected and will NOT be treated as duplicate uploads.")
+            if result.get('exact_duplicate_rows'):
+                st.warning(f"⚠ {result['exact_duplicate_rows']:,} exact duplicate rows detected. These can be excluded during treatment.")
+            if result.get('business_duplicate_rows') and source != 'invoice':
+                st.warning(f"⚠ {result['business_duplicate_rows']:,} rows share the source business key {result.get('business_key_columns')} — review before publishing.")
             st.session_state[f'preview_{source}']=result['preview']; st.session_state[f'result_{source}']=result; st.session_state[f'file_{source}']=f.name
             st.session_state['production_uploads'][source]=sha
             st.dataframe(result['preview'].head(25),use_container_width=True,hide_index=True)
@@ -66,8 +70,10 @@ else: st.info('No production uploads accepted yet.')
 for key in list(st.session_state):
     if key.startswith('result_'):
         source=key.replace('result_',''); r=st.session_state[key]
-        if r.get('exact_duplicate_rows') or r.get('business_duplicate_rows'):
+        if r.get('exact_duplicate_rows') or (r.get('business_duplicate_rows') and source != 'invoice'):
             st.warning(f"{source}: duplicate rows require review. Exact duplicates: {r.get('exact_duplicate_rows',0)}; business-key duplicates: {r.get('business_duplicate_rows',0)}.")
+        if source == 'invoice' and r.get('business_duplicate_note'):
+            st.caption('Invoice identity check: ' + r['business_duplicate_note'])
 
 st.divider(); st.subheader('Metric calculation clock')
 left,right=st.columns(2)
