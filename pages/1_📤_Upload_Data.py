@@ -41,7 +41,7 @@ for tab,label in zip(tabs,SOURCE_SPECS):
                     st.error('File rejected — required identity fields are missing.')
                     st.write('Missing:',result.get('missing',[]))
                 else:
-                    st.error(f\"File rejected — {result.get('message','could not process file')}.\")
+                    st.error(f"File rejected — {result.get('message','could not process file')}.")
                 continue
             st.success(f"✓ Schema accepted • {result['rows']:,} rows • SHA {sha[:12]}…")
             if source == 'invoice' and result.get('entity_count'):
