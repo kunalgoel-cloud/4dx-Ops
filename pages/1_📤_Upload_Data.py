@@ -3,6 +3,7 @@ import pandas as pd
 import streamlit as st
 from validation import validate_upload
 from mapping import get_unmapped_items
+from reconciliation import build_shipment_reconciliation
 from db import get_supabase_client, get_existing_uploads, create_upload_run, store_raw_rows
 
 st.set_page_config(page_title='Data Intake',page_icon='📤',layout='wide')
@@ -94,6 +95,27 @@ for key in list(st.session_state):
             st.warning(f"{source}: duplicate rows require review. Exact duplicates: {r.get('exact_duplicate_rows',0)}; business-key duplicates: {r.get('business_duplicate_rows',0)}.")
         if source == 'invoice' and r.get('business_duplicate_note'):
             st.caption('Invoice identity check: ' + r['business_duplicate_note'])
+
+st.divider(); st.subheader('Cross-source shipment linkage')
+st.caption('Invoice = shipment identity. Links to Sales Order (via Sales Order Number), Outward B2B, Tracking and Freight (via Invoice Number) using whichever of those files have been validated in this session — not just accepted ones.')
+LINK_SOURCES=['invoice','sales_orders','outward_b2b','tracking','freight']
+previews={s: st.session_state[f'result_{s}']['preview'] for s in LINK_SOURCES if f'result_{s}' in st.session_state}
+mappeds={s: st.session_state[f'result_{s}']['mapped'] for s in LINK_SOURCES if f'result_{s}' in st.session_state}
+if 'invoice' not in previews:
+    st.info('Upload and validate an Invoice file first — it is the shipment identity every other source links to.')
+else:
+    shipments,link_stats=build_shipment_reconciliation(previews,mappeds)
+    for stat in link_stats:
+        if stat['note']:
+            st.warning(f"{stat['link']}: {stat['note']}")
+        else:
+            pct=stat['matched']/stat['total']*100 if stat['total'] else 0
+            msg=f"{stat['link']}: {stat['matched']:,} / {stat['total']:,} shipments matched ({pct:.0f}%)"
+            if stat['matched']<stat['total']:
+                st.warning(msg+f" — unmatched examples: {', '.join(stat['unmatched_examples'])}" if stat['unmatched_examples'] else msg)
+            else:
+                st.success(msg)
+    st.dataframe(shipments,use_container_width=True,hide_index=True)
 
 st.divider(); st.subheader('Metric calculation clock')
 left,right=st.columns(2)

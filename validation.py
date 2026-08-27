@@ -39,6 +39,7 @@ ALIASES = {
         'invoice_number': ['Invoice Number', 'Invoice No', 'Invoice', 'Invoice #'],
         'invoice_id': ['Invoice ID', 'Invoice Id', 'ID'],
         'invoice_date': ['Invoice Date', 'Date'],
+        'sales_order': ['Sales Order Number', 'Sales Order', 'Sales Order#', 'SO Number'],
         'sku': ['SKU', 'Item', 'Item Code'],
         'quantity': ['Quantity', 'Qty', 'Invoiced Qty'],
         'customer': ['Customer', 'Customer Name'],
