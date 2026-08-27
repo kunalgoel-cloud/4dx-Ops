@@ -23,6 +23,17 @@ for tab,label in zip(tabs,SOURCE_SPECS):
     source,desc=SOURCE_SPECS[label]
     with tab:
         st.markdown(f'**{desc}**')
+        date_override = None
+        if source == 'sales':
+            st.caption("If this export has no per-row date (e.g. a \"Sales by Item\" summary report), set the reporting month below. It is only used when the file itself has no Date column.")
+            mcol, ycol = st.columns(2)
+            months = ['January','February','March','April','May','June','July','August','September','October','November','December']
+            today = pd.Timestamp.today()
+            with mcol:
+                sel_month = st.selectbox('Reporting month (used only if file has no Date column)', months, index=today.month-1, key=f'sales_month_{source}')
+            with ycol:
+                sel_year = st.number_input('Year', min_value=2020, max_value=2035, value=int(today.year), key=f'sales_year_{source}')
+            date_override = pd.Timestamp(year=int(sel_year), month=months.index(sel_month)+1, day=1)
         f=st.file_uploader(f'Upload {label} file',type=['xlsx','xls','csv'],key=f'upload_{source}')
         if f:
             raw=f.getvalue(); sha=hashlib.sha256(raw).hexdigest()
@@ -35,7 +46,7 @@ for tab,label in zip(tabs,SOURCE_SPECS):
                 st.write(pd.DataFrame(prior)[['filename','status','uploaded_at','rows_received']])
                 continue
             bio=io.BytesIO(raw); bio.name=f.name
-            result=validate_upload(bio,source)
+            result=validate_upload(bio,source,date_override=date_override)
             if not result['ok']:
                 if result.get('missing'):
                     st.error('File rejected — required identity fields are missing.')
@@ -44,6 +55,8 @@ for tab,label in zip(tabs,SOURCE_SPECS):
                     st.error(f"File rejected — {result.get('message','could not process file')}.")
                 continue
             st.success(f"✓ Schema accepted • {result['rows']:,} rows • SHA {sha[:12]}…")
+            if source == 'sales' and result.get('date_injected'):
+                st.warning(f"No Date column found in this file. All {result['rows']:,} rows have been stamped with {result['date_injected_value']} (1st of the selected reporting month). This is a monthly total assigned to a single date, not real daily sales — trailing 30-day / daily-trend metrics will show this whole period's volume on one day rather than spread across days. Prefer a daily-granularity export when one is available.")
             if source == 'invoice' and result.get('entity_count'):
                 st.info(f"Invoice file recognised as a line-item export: {result['entity_count']:,} unique invoices across {result['rows']:,} rows. Repeated Invoice Number values are expected and will NOT be treated as duplicate uploads.")
             if result.get('exact_duplicate_rows'):

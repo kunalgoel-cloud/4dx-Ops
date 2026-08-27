@@ -15,7 +15,7 @@ ALIASES = {
     'sales': {
         'date': ['Date', 'Sales Date', 'Sale Date'],
         'sku': ['SKU', 'Item', 'Item Code'],
-        'units': ['Units', 'Quantity', 'Qty'],
+        'units': ['Units', 'Quantity', 'Qty', 'Quantity Sold', 'quantity_sold'],
     },
     'inventory': {
         'sku': ['SKU', 'Item', 'Item Code'],
@@ -150,7 +150,7 @@ def _duplicate_summary(df, source, mapped):
     return exact_duplicate_rows, business_duplicate_rows, key_cols, entity_count, business_duplicate_note
 
 
-def validate_upload(file_obj, source):
+def validate_upload(file_obj, source, date_override=None):
     try:
         df = _clean_columns(_read(file_obj))
     except Exception as e:
@@ -162,21 +162,34 @@ def validate_upload(file_obj, source):
             'rows': 0,
         }
 
+    # Some source-system exports are aggregated reports with no per-row date
+    # at all (e.g. a "Sales by Item" summary). When the uploader has no Date
+    # column, allow the caller to supply the reporting month/date explicitly
+    # and stamp it onto every row rather than rejecting the file outright.
+    date_injected = False
+    if source == 'sales' and date_override is not None:
+        existing_date_col = _find_col(df.columns, ALIASES.get('sales', {}).get('date', ['Date']))
+        if existing_date_col is None:
+            df['Date'] = pd.to_datetime(date_override).strftime('%Y-%m-%d')
+            date_injected = True
+
     aliases = ALIASES.get(source, {})
     mapped = {k: _find_col(df.columns, v) for k, v in aliases.items()}
 
-    # Minimum identity validation is alias-aware. This fixes exports such as the
-    # current Zoho invoice CSV where the actual column is "Invoice Number".
+    # Minimum identity validation is alias-aware: a required column like
+    # "Units" is satisfied if any of its known aliases (e.g. "quantity_sold")
+    # was matched into the canonical field, not just an exact name match.
     min_required = REQUIRED.get(source, [])
     missing = []
     for required in min_required:
         found = _find_col(df.columns, [required])
-        if found is None:
-            # Also allow any mapped canonical field to satisfy the requirement.
-            if source == 'invoice' and (mapped.get('invoice_number') or mapped.get('invoice_id')):
-                continue
-            if not any(v == required for v in mapped.values()):
-                missing.append(required)
+        if found is not None:
+            continue
+        if source == 'invoice' and (mapped.get('invoice_number') or mapped.get('invoice_id')):
+            continue
+        canonical_key = required.lower().replace(' ', '_')
+        if mapped.get(canonical_key) is None:
+            missing.append(required)
 
     if missing:
         return {
@@ -207,6 +220,11 @@ def validate_upload(file_obj, source):
         'business_key_columns': key_cols,
         'business_duplicate_rows': business_duplicate_rows,
     }
+
+    if source == 'sales':
+        result['date_injected'] = date_injected
+        if date_injected:
+            result['date_injected_value'] = str(pd.to_datetime(date_override).date())
 
     if source == 'invoice':
         result['entity_count'] = entity_count
