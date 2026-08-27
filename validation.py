@@ -65,10 +65,21 @@ ALIASES = {
 
 
 def _read(file_obj):
-    name = getattr(file_obj, 'name', '')
+    name = getattr(file_obj, 'name', '') or ''
     if name.lower().endswith('.csv'):
         return pd.read_csv(file_obj)
-    return pd.read_excel(file_obj)
+    if name.lower().endswith(('.xlsx', '.xls')):
+        return pd.read_excel(file_obj)
+    # No usable filename (e.g. the caller re-wrapped the bytes in a bare
+    # BytesIO): sniff the content instead of guessing Excel by default.
+    file_obj.seek(0)
+    try:
+        df = pd.read_csv(file_obj)
+        file_obj.seek(0)
+        return df
+    except Exception:
+        file_obj.seek(0)
+        return pd.read_excel(file_obj)
 
 
 def _clean_columns(df):

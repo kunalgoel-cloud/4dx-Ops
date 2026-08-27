@@ -34,10 +34,15 @@ for tab,label in zip(tabs,SOURCE_SPECS):
                 st.error('Duplicate file detected: this exact file was already uploaded to the production data store.')
                 st.write(pd.DataFrame(prior)[['filename','status','uploaded_at','rows_received']])
                 continue
-            result=validate_upload(io.BytesIO(raw),source)
+            bio=io.BytesIO(raw); bio.name=f.name
+            result=validate_upload(bio,source)
             if not result['ok']:
-                st.error('File rejected — required identity fields are missing.')
-                st.write('Missing:',result.get('missing',[])); continue
+                if result.get('missing'):
+                    st.error('File rejected — required identity fields are missing.')
+                    st.write('Missing:',result.get('missing',[]))
+                else:
+                    st.error(f\"File rejected — {result.get('message','could not process file')}.\")
+                continue
             st.success(f"✓ Schema accepted • {result['rows']:,} rows • SHA {sha[:12]}…")
             if source == 'invoice' and result.get('entity_count'):
                 st.info(f"Invoice file recognised as a line-item export: {result['entity_count']:,} unique invoices across {result['rows']:,} rows. Repeated Invoice Number values are expected and will NOT be treated as duplicate uploads.")
